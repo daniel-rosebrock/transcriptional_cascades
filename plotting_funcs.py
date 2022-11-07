@@ -432,7 +432,7 @@ def plot_autocorrelation_func(mcmc,gene,autocorrelations):
     
     return fig
 
-def make_inflec_point_comp_plot(mcmc,gene1,gene2,ylim1=None,ylim2=None,yticks1=None,yticks2=None):
+def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2=None,yticks1=None,yticks2=None):
     clrs = sns.color_palette('Set1', n_colors=10)  # a list of RGB tuples
     color_dict = {'gauss':clrs[0],'sigmoidal':clrs[1],'double sigmoidal':clrs[2],'uniform':clrs[3]}
     fig = plt.figure(figsize=(12,4))

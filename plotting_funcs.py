@@ -10,6 +10,7 @@ from scipy.stats import gaussian_kde
 import seaborn as sns
 import pickle as pkl
 from matplotlib import gridspec
+from matplotlib.ticker import FormatStrFormatter
 
 def plot_final_curves(mcmc,gene,type_,n_discard=5000,use_max_args=True,figsize=(8,4),idx=-1):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))

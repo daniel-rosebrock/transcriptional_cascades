@@ -8,59 +8,44 @@ import math
 from scipy.special import gamma
 from scipy.special import loggamma
 
-import sys
 import os
 from scipy.optimize import curve_fit
 
 from lik_models import *
 from helper_funcs import *
 
-gene_fn = sys.argv[1]
-expression_matrix_fn = sys.argv[2]
-count_matrix_fn = sys.argv[3]
-libsizes_fn = sys.argv[4]
-median_counts = float(sys.argv[5])
-phi_opt = float(sys.argv[6])
-n_mcmc_iter = int(sys.argv[7])
-output_dir = sys.argv[8]
+from argparse import ArgumentParser
+from argparse import RawDescriptionHelpFormatter
 
-print('Loading Data...')
-expr_dict = {}
-genes = []
-with open(expression_matrix_fn,'r') as expr_mat_fn:
-    for i,row in enumerate(expr_mat_fn):
-        spl = row.strip("\n").split("\t")
-        if i == 0:
-            for j in range(1,len(spl)):
-                expr_dict[spl[j]] = []
-                genes.append(spl[j])
-        else:
-            for j in range(1,len(spl)):
-                expr_dict[genes[j-1]].append(float(spl[j]))
+parser = ArgumentParser(description='Run MCMC fits on pseudotime ordered expression data')
+parser.add_argument('--gene_fn', type=str, help='Genes to run MCMC fits', default=None)
+parser.add_argument('--count_matrix_fn', type=str, help='Count Matrix ordered by psueodtime', default=None)
+parser.add_argument('--n_mcmc_iter', type=int, help='Numer of MCMC iterations to run', default=10000)
+parser.add_argument('--size_factor', type=float, help='Size factor to normalize count data', default=None)
+parser.add_argument('--report_mcmc_progress', type=bool, help='Print progress bar of MCMC run (boolean)', default=False )
+parser.add_argument('--output_dir', type=str, help='Output directory', default=None )
 
-counts_dict = {}
-genes = []
-with open(count_matrix_fn,'r') as expr_mat_fn:
-    for i,row in enumerate(expr_mat_fn):
-        spl = row.strip("\n").split("\t")
-        if i == 0:
-            for j in range(1,len(spl)):
-                counts_dict[spl[j]] = []
-                genes.append(spl[j])
-        else:
-            for j in range(1,len(spl)):
-                counts_dict[genes[j-1]].append(int(spl[j]))
-                
-libsizes = []
-with open(libsizes_fn,'r') as expr_mat_fn:
-    for i,row in enumerate(expr_mat_fn):
-        spl = row.strip("\n").split("\t")
-        if i == 0:
-            pass
-        else:
-            libsizes.append(float(spl[1]))
+args = parser.parse_args()
 
-libsizes = np.array(libsizes)
+gene_fn = args.gene_fn
+count_matrix_fn = args.count_matrix_fn
+output_dir = args.output_dir
+report_mcmc_progress = args.report_mcmc_progress
+n_mcmc_iter = args.n_mcmc_iter
+
+print('Loading Count Matrix...')
+counts_dict,counts_dict_by_cell,cells,genes_full = read_in_count_matrix_full(count_matrix_fn)
+
+libsizes = np.array([np.sum(counts_dict_by_cell[cell]) for cell in cells])
+median_counts = np.median(libsizes)
+if args.size_factor is None:
+    size_factor = median_counts
+else:
+    size_factor = args.size_factor
+
+print('Estimating Global Dispersion Parameter...')
+phi_opt = estimate_global_dispersion_param(counts_dict,nbins=5)
+print('Global phi estimate: ',str(phi_opt))
 
 with open(gene_fn,'r') as genes:
     for i,row in enumerate(genes):
@@ -69,8 +54,9 @@ with open(gene_fn,'r') as genes:
             print('gene already run:', gene)
             continue
         print('running gene:', gene)
-        ordered_expression = np.array(expr_dict[gene])
+        #normalize expression data
         counts = np.array(counts_dict[gene])
+        ordered_expression = [np.log(c/l*size_factor+1) for c,l in zip(counts,libsizes)]
         xdata = range(len(ordered_expression))
         max_expr = max(ordered_expression)
 
@@ -108,25 +94,13 @@ with open(gene_fn,'r') as genes:
         nwalkers, ndim = pos.shape
 
         sampler_double_sigmoidal = emcee.EnsembleSampler(
-            nwalkers, ndim, log_probability_double_sigmoidal, args=(xdata, counts, libsizes, median_counts, phi_opt, len(xdata), max_expr)
+            nwalkers, ndim, log_probability_double_sigmoidal, args=(xdata, counts, libsizes, size_factor, phi_opt, len(xdata), max_expr)
         )
-        sampler_double_sigmoidal.run_mcmc(pos, n_mcmc_iter, progress=False)
+        sampler_double_sigmoidal.run_mcmc(pos, n_mcmc_iter, progress=report_mcmc_progress)
 
         ### run Gaussian MCMC ###
         print('running Gaussian MCMC')
         pos_new = []
-        #p0 = [1,np.median(xdata),len(xdata)/20.,0] # this is n mandatory initial guess
-        #Note: These parameters ensure all walkers start in a parameter setting with positive likelihood
-        '''
-        for a in np.linspace(max(ordered_expression)/2.,max(ordered_expression),8):
-            pos_new.append(np.array([a,np.median(xdata)+np.random.uniform(-np.median(xdata)/2.,np.median(xdata)/2.),
-                                    np.random.uniform(len(xdata)/100,len(xdata)/5.),np.random.uniform(0.01,max(ordered_expression)/10.)]))
-        for y_offset in np.linspace(max(ordered_expression)/2.,max(ordered_expression),8):
-            pos_new.append(np.array([np.random.uniform(-max(ordered_expression)/2,-max(ordered_expression)/4),
-                                     np.median(xdata)+np.random.uniform(-np.median(xdata)/2.,np.median(xdata)/2.),
-                                     np.random.uniform(len(xdata)/100,len(xdata)/5.),y_offset]))
-        pos = np.array(pos_new)
-        '''
         p0 = [max_expr/2.,np.median(xdata),len(xdata)/20.,max_expr*0.05] # this is n mandatory initial guess
         try:
             popt_gauss, pcov = curve_fit(gaussian, xdata, ordered_expression,p0, 
@@ -162,21 +136,12 @@ with open(gene_fn,'r') as genes:
         nwalkers, ndim = pos.shape
 
         sampler_gauss = emcee.EnsembleSampler(
-            nwalkers, ndim, log_probability_gaussian, args=(xdata, counts, libsizes, median_counts, phi_opt, len(xdata), max_expr), 
+            nwalkers, ndim, log_probability_gaussian, args=(xdata, counts, libsizes, size_factor, phi_opt, len(xdata), max_expr), 
         )
-        sampler_gauss.run_mcmc(pos, n_mcmc_iter, progress=False)
+        sampler_gauss.run_mcmc(pos, n_mcmc_iter, progress=report_mcmc_progress)
 
         ### run Sigmoidal MCMC ###
         print('running Sigmoidal MCMC')
-        '''
-        pos_new = []
-        for k in np.linspace(-0.1,0.1,16):
-            pos_new.append(np.array([np.random.uniform(0.01,max(ordered_expression)/2.),
-                                     np.median(xdata)+np.random.uniform(-np.median(xdata)/2.,np.median(xdata)/2.),
-                                     k,
-                                     np.random.uniform(0.01,max(ordered_expression)/2.)]))
-        pos = np.array(pos_new)
-        '''
         p0 = [max_expr, np.median(xdata),0,max_expr*0.05] # this is n mandatory initial guess
         try:
             popt_sig, pcov = curve_fit(sigmoid, xdata, ordered_expression,p0, 
@@ -211,9 +176,9 @@ with open(gene_fn,'r') as genes:
         nwalkers, ndim = pos.shape
 
         sampler_sigmoidal = emcee.EnsembleSampler(
-            nwalkers, ndim, log_probability_sigmoidal, args=(xdata, counts, libsizes, median_counts, phi_opt, len(xdata), max_expr)
+            nwalkers, ndim, log_probability_sigmoidal, args=(xdata, counts, libsizes, size_factor, phi_opt, len(xdata), max_expr)
         )
-        sampler_sigmoidal.run_mcmc(pos, n_mcmc_iter, progress=False)
+        sampler_sigmoidal.run_mcmc(pos, n_mcmc_iter, progress=report_mcmc_progress)
 
         ### run Uniform MCMC ###
         print('running Unifrom MCMC')
@@ -221,9 +186,9 @@ with open(gene_fn,'r') as genes:
         nwalkers, ndim = pos.shape
 
         sampler_unif = emcee.EnsembleSampler(
-            nwalkers, ndim, log_probability_uniform, args=(xdata, counts, libsizes, median_counts, phi_opt, max_expr)
+            nwalkers, ndim, log_probability_uniform, args=(xdata, counts, libsizes, size_factor, phi_opt, max_expr)
         )
-        sampler_unif.run_mcmc(pos, n_mcmc_iter, progress=False)
+        sampler_unif.run_mcmc(pos, n_mcmc_iter, progress=report_mcmc_progress)
 
         samplers = {}
         for sampler,type_ in zip([sampler_double_sigmoidal,sampler_gauss,sampler_sigmoidal,sampler_unif],
@@ -231,18 +196,26 @@ with open(gene_fn,'r') as genes:
             samplers[type_] = sampler
 
         info = {}
+        print('Annotating useful info and getting best fit...')
         info = annotate_useful_info(samplers,info)
         #bic_subs_dict used to measure best fits based on sub-sampling to perc_subset and estimating bic on subsets
         bic_subs_dict,bic_avg_params,aic_avg_params = make_bic_estimate_subsets(samplers,info,counts,max_expr,
-            libsizes,median_counts,phi_opt,xdata,perc_subset=0.98,n_subset=10000)
+            libsizes,size_factor,phi_opt,xdata,perc_subset=0.98,n_subset=10000)
         info['bic_avg_params'] = bic_avg_params
         info['aic_avg_params'] = aic_avg_params
         info = measure_best_fits(samplers,info,ordered_expression,bic_subs_dict)
         info['dic_dict'] = estimate_dic(samplers,info)
         samplers['bic_subs_dict'] = bic_subs_dict
-        
+
+        print('Running autocorrelation analysis on best fit...')
+        autocorrelation_analysis = run_autocorrelation_analysis(info,samplers)
+
+        print('Writing pkls...')
         with open(output_dir+'/'+gene+'.pkl', 'wb') as handle:
             pkl.dump(samplers, handle, protocol=pkl.HIGHEST_PROTOCOL)
 
         with open(output_dir+'/'+gene+'.info.pkl', 'wb') as handle:
             pkl.dump(info, handle, protocol=pkl.HIGHEST_PROTOCOL)
+
+        with open(output_dir+'/'+gene+'.autocorrelation_analysis.pkl', 'wb') as handle:
+            pkl.dump(autocorrelation_analysis, handle, protocol=pkl.HIGHEST_PROTOCOL)

@@ -5,6 +5,8 @@ import functools
 import operator
 import pickle as pkl
 import itertools
+from scipy import stats
+from scipy.optimize import curve_fit
 
 def read_in_expr_matrix(fn):
     expr_dict = {}
@@ -36,6 +38,26 @@ def read_in_count_matrix(fn):
                     counts_dict[genes[j-1]].append(int(spl[j]))
     return counts_dict
 
+def read_in_count_matrix_full(count_matrix_fn):
+    counts_dict = {}
+    counts_dict_by_cell = {}
+    cells = []
+    genes_full = []
+    with open(count_matrix_fn,'r') as expr_mat_fn:
+        for i,row in enumerate(expr_mat_fn):
+            spl = row.strip("\n").split("\t")
+            if i == 0:
+                for j in range(1,len(spl)):
+                    counts_dict[spl[j]] = []
+                    genes_full.append(spl[j])
+            else:
+                cells.append(spl[0])
+                counts_dict_by_cell[cells[-1]] = []
+                for j in range(1,len(spl)):
+                    counts_dict[genes_full[j-1]].append(int(spl[j]))
+                    counts_dict_by_cell[spl[0]].append(int(spl[j]))
+    return counts_dict,counts_dict_by_cell,cells,genes_full
+
 def read_in_libsizes(fn):    
     libsizes = []
     with open(fn,'r') as expr_mat_fn:
@@ -47,6 +69,59 @@ def read_in_libsizes(fn):
                 libsizes.append(float(spl[1]))
     libsizes = np.array(libsizes)
     return libsizes
+
+def get_binned_fits(log_x,log_y,nbins=5):
+    x_bins = np.linspace(min(log_x),max(log_x),nbins)
+    binned_fits = {}
+    for j in range(nbins-1):
+        x_dat_sub = log_x[(log_x>=x_bins[j])&(log_x<x_bins[j+1])]
+        y_dat_sub = log_y[(log_x>=x_bins[j])&(log_x<x_bins[j+1])]
+        slope, intercept, r, p, std_err = stats.linregress(x_dat_sub,y_dat_sub)
+        binned_fits[(x_bins[j],x_bins[j+1])] = slope, intercept, r, p, std_err
+    return binned_fits
+
+def var_func_nb(x, b):
+    y = x+x**2/b
+    return (y)
+
+def estimate_global_dispersion_param(counts_dict,nbins=5):
+    means = np.array([np.mean(counts_dict[gene]) for gene in counts_dict.keys()])
+    vars_ = np.array([np.var(counts_dict[gene]) for gene in counts_dict.keys()])
+    xdata = means[means > 0]
+    ydata = vars_[means > 0]
+    log_x = np.log(xdata)/np.log(10)
+    log_y = np.log(ydata)/np.log(10)
+    #we do not want to use genes which highly deviate from the curve for fitting
+    #therefore, bin data into 5 bins, and estimate dispersions after subtracting corresponding means
+    #Subtract dispersion estimates for each gene from piece-wise linear regression fit
+    binned_fits = get_binned_fits(log_x,log_y,nbins=nbins)
+    y_diffs = []
+    x_bins = []
+    for x,y in zip(log_x,log_y):
+        found = False
+        for j,bfit in enumerate(binned_fits):
+            if (x >= bfit[0]) and (x <= bfit[1]):
+                y_diffs.append(y - (binned_fits[bfit][0]*x+binned_fits[bfit][1]))
+                x_bins.append(j)
+                found = True
+                break
+    y_diffs = np.array(y_diffs)
+    x_bins = np.array(x_bins)
+    #Within each bin, remove the genes with the top 20% of highly variable compared to piece linear fit
+    highly_disp = []
+    non_highly_disp = []
+    for j,bfit in enumerate(binned_fits):
+        y_diffs_sub = y_diffs[x_bins==j]
+        orig_idx = np.where(x_bins==j)[0]
+        sorted_y_diffs_sub = sorted(y_diffs_sub,reverse=True)
+        top_cutoff = sorted_y_diffs_sub[int(len(sorted_y_diffs_sub)*0.2)]
+        highly_disp.extend(orig_idx[y_diffs_sub>top_cutoff])
+        non_highly_disp.extend(orig_idx[y_diffs_sub<=top_cutoff])
+    highly_disp = np.array(highly_disp)
+    non_highly_disp = np.array(non_highly_disp)
+    p0 = [1] # this is n mandatory initial guess
+    popt, pcov = curve_fit(var_func_nb, xdata[non_highly_disp], ydata[non_highly_disp],p0, method='lm',)
+    return popt[0]
 
 def get_mode(vals,n_bins=500):
     counts,bins = np.histogram(vals,bins=n_bins)
@@ -63,6 +138,19 @@ def histogram_intersection(vals, n_bins=100):
         for j,count in enumerate(counts):
             overlap_counts[j] = min(overlap_counts[j],count)
     return (sum(overlap_counts)/n_val)
+
+def measure_a_before_b(vals, n_bins=100):
+    flat_vals = functools.reduce(operator.iconcat, vals, [])
+    max_vals = max(flat_vals)
+    min_vals = min(flat_vals)
+    counts1,bins1 = np.histogram(vals[0],range=(min_vals,max_vals),bins=n_bins)
+    counts2,bins2 = np.histogram(vals[1],range=(min_vals,max_vals),bins=n_bins)
+    n_tot1 = np.sum(counts1)
+    n_tot2 = np.sum(counts2)
+    perc_less_or_equal = 0
+    for j,count in enumerate(counts2):
+        perc_less_or_equal += counts2[j]/n_tot2*np.sum(counts1[:j])/n_tot1
+    return(perc_less_or_equal)
 
 def double_sig_deriv(x,b_min, b_mid, b_max, x1, x2, k1, k2):
     return k1*(b_mid-b_min)*np.exp(-k1*(x-x1))/((1+np.exp(-k1*(x-x1)))**2)+k2*(b_max-b_mid)*np.exp(-k2*(x-x2))/((1+np.exp(-k2*(x-x2)))**2) 
@@ -143,7 +231,6 @@ def estimate_aic(k,ll):
 
 def make_bic_estimate_subsets(samplers,info,counts,max_expr,libsizes,
     median_counts,phi_opt,xdata,perc_subset=0.98,n_subset=10000):
-    
     xdata = np.array(xdata)
     #len_x = len(xdata)
     len_x = xdata[-1]
@@ -230,9 +317,6 @@ def measure_best_fits(samplers,info,ordered_expression,bic_subs_dict):
     if (max(bic_subs_dict['double sigmoidal']) - min(bic_subs_dict['uniform']) < 0) & \
         (max(bic_subs_dict['double sigmoidal']) - np.percentile(bic_subs_dict['gauss'],5) < 0) & \
         (max(bic_subs_dict['double sigmoidal']) - np.percentile(bic_subs_dict['sigmoidal'],5) < 0):
-        #(np.mean(bic_subs_dict['double sigmoidal']) - np.mean(bic_subs_dict['gauss']) < 0) & \
-        #(np.mean(bic_subs_dict['double sigmoidal']) - np.mean(bic_subs_dict['sigmoidal']) < 0):
-        #(p_overlap_dict['double sigmoidal'] >= 0.05) & \
         best_fit = 'double sigmoidal'
         ## get flattened chains and estimate inflection points and derivs ##
         # double_sig params: b_min, b_max, b_final, x1, x2, k1, k2
@@ -248,7 +332,6 @@ def measure_best_fits(samplers,info,ordered_expression,bic_subs_dict):
                                                           sig_params[:,6][j]) for j in range(len(inflection_points_2))]
     elif (max(bic_subs_dict['sigmoidal']) - min(bic_subs_dict['uniform']) < 0) & \
         (np.mean(bic_subs_dict['sigmoidal']) - np.mean(bic_subs_dict['gauss']) < 0):
-        #(p_overlap_dict['sigmoidal'] >= 0.05) & \
         best_fit = 'sigmoidal'
         ## get flattened chains and estimate inflection points and derivs ##
         # sig params: L, x0, k, b #
@@ -261,7 +344,6 @@ def measure_best_fits(samplers,info,ordered_expression,bic_subs_dict):
                                                sig_params[:,2][j],sig_params[:,3][j]) for j in range(len(inflection_points))]
     elif (max(bic_subs_dict['gauss']) - min(bic_subs_dict['uniform']) < 0) & \
         (np.mean(bic_subs_dict['gauss']) - np.mean(bic_subs_dict['sigmoidal']) < 0):
-        #(p_overlap_dict['gauss'] >= 0.05) & \
         best_fit = 'gauss'
         ## get flattened chains and estimate inflection points and derivs ##
         # gauss params: a, x0, sigma, y_offset #
@@ -306,6 +388,40 @@ def annotate_useful_info(samplers,info):
         info['max_args_full'] = max_args
         info['med_liks_full'] = med_liks_full
     return info
+
+def run_autocorrelation_analysis(info,samplers):
+    type_ = info['best_fit']
+    sampler = samplers[type_]
+    if type_ == 'double sigmoidal':
+        n_param = 7
+    elif type_ in ['gauss','sigmoidal']:
+        n_param = 4
+    else:
+        n_param = 1
+    autocorrelation_analysis = {}
+    acf_params_tot = []
+    for param in range(n_param):
+        acfs = []
+        for dt in range(1000):
+            acfs_iter = []
+            for samp_iter in range(n_param*2):
+                sample = samplers[type_].get_chain(discard=5000, flat=False)[:,info['max_args_full'][type_]][:,samp_iter,:][:,param]
+                acfs_iter.append(np.corrcoef(sample[:5000-dt],sample[dt:],rowvar=False)[0][1])
+            acfs.append(acfs_iter)
+        acf_params_tot.append(acfs)
+    auto_corr_length_int = []
+    for acfs in acf_params_tot:
+        auto_corr_length = []
+        for dx in range(1,1000):
+            auto_corr_length.append(1+2*np.sum(acfs[:dx],axis=0))
+        auto_corr_length_int.append(auto_corr_length)
+    autocorr_time_estimates = []
+    for j,auto_corr in enumerate(auto_corr_length_int):
+        autocorr_time_estimates.append(max(np.mean(auto_corr,axis=1)))
+    autocorrelation_analysis['acf_params_tot'] = acf_params_tot
+    autocorrelation_analysis['auto_corr_length_int'] = auto_corr_length_int
+    autocorrelation_analysis['autocorr_time_estimates'] = autocorr_time_estimates
+    return autocorrelation_analysis
 
 def comp_helper_simult(gene_relat,gene1,gene2,g1_deriv_mode,g2_deriv_mode):
     if g1_deriv_mode*g2_deriv_mode > 0: #same sign

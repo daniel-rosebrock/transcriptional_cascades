@@ -23,4 +23,4 @@ To submit each gene subset in parallel, configure the bash script to use the cor
     ls -1 $PWD/data/e14_5_mouse_forebrain_neuron_diff_gene_subsets/ | xargs -I {} mxqsub -t 10h -N mcmc_e14_5_forebrain_dorsal --stdout {}.stdout --stderr {}.stderr -w $PWD/outputs_full/e16_5_forebrain_dorsal bash $PWD/run_e14_5_forebrain_dorsal.sh $PWD $PWD/data/e14_5_mouse_forebrain_neuron_diff_gene_subsets/{}
 
 ## Outputs
-The outputs of each MCMC run are stored as pkls, which can be loaded using the mcmc_data class (in mcmc_data.py). The notebook load_mcmc_run.ipynb shows an example of loading the MCMC runs for the subset of genes in data/check.tsv with various plotting examples. 
+The outputs of each MCMC run are stored as pkls, which can be loaded using the mcmc_data class (in mcmc_data.py). The notebook load_mcmc_run.ipynb shows an example of loading the MCMC runs for the subset of genes in data/check.tsv with various plotting examples. The notebook load_mcmc_run_full.ipynb highlights results across all genes in the dataset.

@@ -257,7 +257,7 @@ def make_mcmc_trace_plot(mcmc,gene,type_,sub_not_include=False,sub_in_red=False,
     plt.xticks(fontsize=16)
     return fig
 
-def make_corner_plot(mcmc,gene,type_,n_discard=5000,use_max_args=True):
+def make_corner_plot(mcmc,gene,type_,n_discard=5000,use_max_args=True,gene_lab=None):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
     sampler = samplers[type_]
     if use_max_args:

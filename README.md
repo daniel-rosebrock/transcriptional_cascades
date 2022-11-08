@@ -3,7 +3,7 @@
 ## Required input files:
    - count_matrix_fn: contains a .tsv file with a scRNA-Seq count matrix (cells in rows, genes in columns) where cells are ordered along a pseudotime trajectory (see data/e14_5_mouse_forebrain_neuron_diff.raw_count_matrix.tsv for an example)
 
-As an example dataset, the mouse brain atlas from [Manno et al.](https://www.nature.com/articles/s41586-021-03775-x) was downloaded from [UCSC Cell Browser](https://cells.ucsc.edu/?ds=mouse-dev-brain). The dataset was subset to forebrain dorsal cells of e14.5, and [diffusion pseuodtime](https://www.nature.com/articles/nmeth.3971) was used to estimate pseudotime for cells along the cortical NSC -> IP -> neuron route with [scanpy](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1382-0). See mouse_brain_e14.5_preprocessing.ipynb. In this notebook, the input file data/e14_5_mouse_forebrain_neuron_diff.raw_count_matrix.tsv was generated).
+As an example dataset, the mouse brain atlas from [Manno et al.](https://www.nature.com/articles/s41586-021-03775-x) was downloaded from [UCSC Cell Browser](https://cells.ucsc.edu/?ds=mouse-dev-brain). The dataset was subset to forebrain dorsal cells of e14.5, and [diffusion pseuodtime](https://www.nature.com/articles/nmeth.3971) was used to estimate pseudotime for cells along the cortical NSC -> IP -> neuron route with [scanpy](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1382-0). See mouse_brain_e14.5_preprocessing.ipynb. In this notebook, the input file data/e14_5_mouse_forebrain_neuron_diff.raw_count_matrix.tsv was generated.
 
 ## Run MCMC on a set of genes 
    - data/check.tsv contains a list of genes to run on (see data/check.tsv for an example)

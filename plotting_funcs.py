@@ -12,7 +12,7 @@ import pickle as pkl
 from matplotlib import gridspec
 from matplotlib.ticker import FormatStrFormatter
 
-def plot_final_curves(mcmc,gene,type_,n_discard=5000,use_max_args=True,figsize=(8,4),idx=-1):
+def plot_final_curves(mcmc,gene,type_,n_discard=5000,use_max_args=True,figsize=(8,4),idx=-1,gene_lab=None):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
     sampler = samplers[type_]
     expr_dict = mcmc.expr_dict
@@ -59,12 +59,15 @@ def plot_final_curves(mcmc,gene,type_,n_discard=5000,use_max_args=True,figsize=(
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     # Put a legend to the right of the current axis
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize=12,frameon=False)
-    plt.title(gene+' '+type_+' fits',fontsize=20)
+    if gene_lab is not None:
+        plt.title(gene_lab+' '+type_+' fits',fontsize=20)
+    else:
+        plt.title(gene+' '+type_+' fits',fontsize=20)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     return fig
 
-def make_fit_plot(mcmc,gene,type_,n_discard=5000,use_max_args=True):
+def make_fit_plot(mcmc,gene,type_,n_discard=5000,use_max_args=True,gene_lab=None):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
     sampler = samplers[type_]
     expr_dict = mcmc.expr_dict
@@ -91,12 +94,15 @@ def make_fit_plot(mcmc,gene,type_,n_discard=5000,use_max_args=True):
         else:
             func_ = np.array([sample[0]]*len(xdata))
         plt.plot(xdata,func_, '-',color='blue',linewidth=1,alpha=0.1)
-    plt.title(gene+', '+type_ + ' fit',fontsize=20)
+    if gene_lab is not None:
+        plt.title(gene+', '+type_ + ' fit',fontsize=20)
+    else:
+        plt.title(gene+', '+type_ + ' fit',fontsize=20)
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
     return fig
 
-def make_joint_fit_plot(mcmc,gene,n_discard=5000,use_max_args=True):
+def make_joint_fit_plot(mcmc,gene,n_discard=5000,use_max_args=True,gene_lab=None):
     label_dict = {'gauss':'Gaussian','sigmoidal':'sigmoidal',
                  'double sigmoidal':'double sigmoidal','uniform':'uniform'}
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
@@ -106,7 +112,10 @@ def make_joint_fit_plot(mcmc,gene,n_discard=5000,use_max_args=True):
     fig = plt.figure(figsize=(8,6))
     xdata = range(len(expr_dict[gene]))
     plt.plot(xdata, expr_dict[gene],'.', markerfacecolor='None',color='darkgray', lw=0.1, markersize=10, alpha=1,zorder=-1)
-    plt.title(gene,fontsize=20)
+    if gene_lab is not None:
+        plt.title(gene,fontsize=20)
+    else:
+        plt.title(gene,fontsize=20)
     plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.ylabel('Expression',fontsize=18)
     plt.xticks(fontsize=16)
@@ -138,7 +147,7 @@ def make_joint_fit_plot(mcmc,gene,n_discard=5000,use_max_args=True):
     plt.legend(fontsize=16)
     return fig
 
-def make_joint_fit_and_bic_estimate_plot(mcmc,gene,n_discard=5000,use_max_args=True):
+def make_joint_fit_and_bic_estimate_plot(mcmc,gene,n_discard=5000,use_max_args=True,gene_lab=None):
     label_dict = {'gauss':'Gaussian','sigmoidal':'sigmoidal',
                  'double sigmoidal':'double sigmoidal','uniform':'uniform'}
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
@@ -149,7 +158,10 @@ def make_joint_fit_and_bic_estimate_plot(mcmc,gene,n_discard=5000,use_max_args=T
     ax = plt.subplot(121)
     xdata = range(len(expr_dict[gene]))
     plt.plot(xdata, expr_dict[gene],'.', markerfacecolor='None',color='darkgray', lw=0.1, markersize=10, alpha=1,zorder=-1)
-    plt.title(gene+' MCMC fits',fontsize=20)
+    if gene_lab is not None:
+        plt.title(gene_lab+' MCMC fits',fontsize=20)
+    else:
+        plt.title(gene+' MCMC fits',fontsize=20)
     plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.ylabel('Expression',fontsize=18)
     plt.xticks(fontsize=16)
@@ -184,7 +196,10 @@ def make_joint_fit_and_bic_estimate_plot(mcmc,gene,n_discard=5000,use_max_args=T
     for type_ in ['double sigmoidal','sigmoidal','gauss','uniform']:#,'uniform']:
         sns.distplot(samplers['bic_subs_dict'][type_],color=color_dict[type_],label=label_dict[type_])
 
-    plt.title(gene+' BIC estimates on 98% subsets',fontsize=20)
+    if gene_lab is not None:
+        plt.title(gene+' BIC estimates on 98% subsets',fontsize=20)
+    else:
+        plt.title(gene+' BIC estimates on 98% subsets',fontsize=20)
     plt.xlabel('BIC',fontsize=18)
     plt.ylabel('Density',fontsize=18)
     plt.xticks(fontsize=16)
@@ -197,7 +212,7 @@ def make_joint_fit_and_bic_estimate_plot(mcmc,gene,n_discard=5000,use_max_args=T
     plt.tight_layout()
     return fig
 
-def make_mcmc_trace_plot(mcmc,gene,type_,sub_not_include=False,sub_in_red=False,n_discard=5000,plot_burnin=True):
+def make_mcmc_trace_plot(mcmc,gene,type_,sub_not_include=False,sub_in_red=False,n_discard=5000,plot_burnin=True,gene_lab=None):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
     sampler = samplers[type_]
     ndim = sampler.ndim
@@ -227,7 +242,10 @@ def make_mcmc_trace_plot(mcmc,gene,type_,sub_not_include=False,sub_in_red=False,
         ax.set_ylabel(labels[i],fontsize=18)
         ax.tick_params(axis='y', labelsize=14)
         if i == 0:
-            ax.set_title(gene+' '+title_dict[type_]+' MCMC Trace Plot',fontsize=18)
+            if gene_lab is not None:
+                ax.set_title(gene_lab+' '+title_dict[type_]+' MCMC Trace Plot',fontsize=18)
+            else:
+                ax.set_title(gene+' '+title_dict[type_]+' MCMC Trace Plot',fontsize=18)
     if plot_burnin:
         for i in range(ndim):
             ax = axes[i]
@@ -258,11 +276,15 @@ def make_corner_plot(mcmc,gene,type_,n_discard=5000,use_max_args=True):
     fig = corner.corner(flat_samples, labels=labels, truths=means, label_kwargs={'fontsize':18})
     title_dict = {'gauss':'Gaussian parameter estimates','sigmoidal':'sigmoidal parameter estimates',
                  'double sigmoidal':'double sigmoidal parameter estimates','uniform':'uniform parameter estimates'}
+    if gene_lab is not None:
+        title_ = gene_lab+' '+title_dict[type_]
+    else:
+        title_ = gene+' '+title_dict[type_]
     if type_ == 'uniform':
-        plt.title(gene+' '+title_dict[type_],fontsize=18)
+        plt.title(title_,fontsize=18)
     else:
         plt.subplots_adjust(top=0.92)
-        plt.suptitle(gene+' '+title_dict[type_],fontsize=20)
+        plt.suptitle(title_,fontsize=20)
     return fig
 
 def add_violin(fig,data,iter_,color='gray',violin_cutoff=True, height=0.5):
@@ -291,7 +313,7 @@ def add_violin(fig,data,iter_,color='gray',violin_cutoff=True, height=0.5):
                      alpha=0.2, lw=2)
     return fig
 
-def make_lik_hist_plot(mcmc, gene, n_discard=5000,use_max_args=True):
+def make_lik_hist_plot(mcmc, gene, n_discard=5000,use_max_args=True,gene_lab=None):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
     clrs = sns.color_palette('Set1', n_colors=10)  # a list of RGB tuples
     color_dict = {'gauss':clrs[0],'sigmoidal':clrs[1],'double sigmoidal':clrs[2],'uniform':clrs[3]}
@@ -310,11 +332,14 @@ def make_lik_hist_plot(mcmc, gene, n_discard=5000,use_max_args=True):
     plt.ylabel('Density',fontsize=18)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)
-    plt.title(gene+ ' MCMC fits log-likelihood estimates',fontsize=20)
+    if gene_lab is not None:
+        plt.title(gene_lab+ ' MCMC fits log-likelihood estimates',fontsize=20)
+    else:
+        plt.title(gene+ ' MCMC fits log-likelihood estimates',fontsize=20)
     plt.legend(fontsize=16)
     return fig
 
-def make_acceptance_fraction_plot(mcmc,gene):
+def make_acceptance_fraction_plot(mcmc,gene,gene_lab=None):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
     clrs = sns.color_palette('Set1', n_colors=10)  # a list of RGB tuples
     color_dict = {'gauss':clrs[0],'sigmoidal':clrs[1],'double sigmoidal':clrs[2],'uniform':clrs[3]}
@@ -352,7 +377,10 @@ def make_acceptance_fraction_plot(mcmc,gene):
     plt.xticks([0,1,2,3],['double\nsigmoidal','sigmoidal','Gaussian','uniform'],fontsize=18)
     plt.ylabel('Acceptance Rate [%]',fontsize=18)
     plt.yticks(fontsize=16)
-    plt.title(gene+' Acceptance Rates',fontsize=20)
+    if gene_lab is not None:
+        plt.title(gene_lab+' Acceptance Rates',fontsize=20)
+    else:
+        plt.title(gene+' Acceptance Rates',fontsize=20)
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     # Put a legend to the right of the current axis
@@ -433,7 +461,8 @@ def plot_autocorrelation_func(mcmc,gene,autocorrelations):
     
     return fig
 
-def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2=None,yticks1=None,yticks2=None):
+def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2=None,yticks1=None,yticks2=None,
+    gene_lab1=None,gene_lab2=None):
     clrs = sns.color_palette('Set1', n_colors=10)  # a list of RGB tuples
     color_dict = {'gauss':clrs[0],'sigmoidal':clrs[1],'double sigmoidal':clrs[2],'uniform':clrs[3]}
     fig = plt.figure(figsize=(12,4))
@@ -467,7 +496,11 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
         plt.ylim(ylim1[0],ylim1[1])
     #ax.yaxis.tick_right()
     plt.yticks(fontsize=14)
-    plt.ylabel(gene1,fontsize=14)
+    if gene_lab1 is not None:
+        gene_label1 = gene_lab1
+    else:
+        gene_label1 = gene1
+    plt.ylabel(gene_label1,fontsize=14)
     plt.title('MCMC fits',fontsize=14)
     if np.mean(mcmc.inflection_point_derivs[gene1]) > 0:
         if type_ == 'double sigmoidal': color1_gene1 = 'salmon'
@@ -515,7 +548,11 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
         plt.ylim(ylim2[0],ylim2[1])
     #ax.yaxis.tick_right()
     plt.yticks(fontsize=14)
-    plt.ylabel(gene2,fontsize=14)
+    if gene_lab2 is not None:
+        gene_label2 = gene_lab2
+    else:
+        gene_label2 = gene2
+    plt.ylabel(gene_label2,fontsize=14)
     if np.mean(mcmc.inflection_point_derivs[gene2]) > 0:
         if type_ == 'double sigmoidal': color1_gene2 = 'salmon'
         else: color1_gene2='red'
@@ -533,8 +570,8 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
         ax.axvspan(min(mcmc.inflection_points_2[gene2]),max(mcmc.inflection_points_2[gene2]),alpha=0.3, color=color2_gene2)
 
     ax = plt.subplot(gs[:,4:8])
-    sns.distplot(mcmc.inflection_points[gene1],color=color1_gene1,label=gene1)#bins=n_bins
-    sns.distplot(mcmc.inflection_points[gene2],color=color1_gene2,label=gene2)#bins=n_bins
+    sns.distplot(mcmc.inflection_points[gene1],color=color1_gene1,label=gene_label1)#bins=n_bins
+    sns.distplot(mcmc.inflection_points[gene2],color=color1_gene2,label=gene_label2)#bins=n_bins
     plt.xlabel('Pseudotime',fontsize=14)
     plt.xticks(fontsize=14)
     print('Inflec 1 overlap: ',histogram_intersection([mcmc.inflection_points[gene2],mcmc.inflection_points[gene1]],n_bins=100))
@@ -552,9 +589,9 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
 
     ax = plt.subplot(gs[:,8:])
     if mcmc.inflection_points_2[gene1] is not None:
-        sns.distplot(mcmc.inflection_points_2[gene1],color=color2_gene1,label=gene1)#bins=n_bins
+        sns.distplot(mcmc.inflection_points_2[gene1],color=color2_gene1,label=gene_label1)#bins=n_bins
     if mcmc.inflection_points_2[gene2] is not None:
-        sns.distplot(mcmc.inflection_points_2[gene2],color=color2_gene2,label=gene2)#bins=n_bins
+        sns.distplot(mcmc.inflection_points_2[gene2],color=color2_gene2,label=gene_label2)#bins=n_bins
     plt.xlabel('Pseudotime',fontsize=14)
     plt.ylabel('')
     plt.xticks(fontsize=14)
@@ -639,7 +676,10 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
                 plt.plot(mode,iter_,'o',color='blue',markersize=3)
                 fig = add_violin(fig,mcmc.inflection_points[gene],iter_,'blue',violin_cutoff,height)
         iter_ -= 1
-        gene_labs.append(gene)
+        if '|' in gene:
+            gene_labs.append(gene.split("|")[1])
+        else:
+            gene_labs.append(gene)
     plt.yticks(range(0,iter_,-1),gene_labs,fontsize=14)
     for yy in range(0,iter_,-1):
         plt.axhline(yy,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)

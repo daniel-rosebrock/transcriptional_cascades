@@ -1,10 +1,10 @@
 ### Fit functions to pseudotime ordered gene expression profiles from scRNA-Seq data using affine-invariant ensemble MCMC
 
 ## Required input files:
-     - count_matrix_fn: contains a .tsv file with a scRNA-Seq count matrix (cells in rows, genes in columns) where cells are ordered along a pseudotime trajectory (see data/e14_5_mouse_forebrain_neuron_diff.raw_count_matrix.tsv for example)
+   - count_matrix_fn: contains a .tsv file with a scRNA-Seq count matrix (cells in rows, genes in columns) where cells are ordered along a pseudotime trajectory (see data/e14_5_mouse_forebrain_neuron_diff.raw_count_matrix.tsv for an example)
 
 ## Run MCMC on a set of genes 
-     - data/check.tsv contains a list of genes to run on (see data/check.tsv for example)
+   - data/check.tsv contains a list of genes to run on (see data/check.tsv for an example)
 
 In order to run the MCMC on an input file, number of MCMC iterations needs to be specified (default is 10000) and an output directory. Here is an example:  
 

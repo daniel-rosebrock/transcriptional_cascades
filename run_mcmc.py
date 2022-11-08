@@ -22,8 +22,8 @@ parser.add_argument('--gene_fn', type=str, help='Genes to run MCMC fits', defaul
 parser.add_argument('--count_matrix_fn', type=str, help='Count Matrix ordered by psueodtime', default=None)
 parser.add_argument('--n_mcmc_iter', type=int, help='Numer of MCMC iterations to run', default=10000)
 parser.add_argument('--size_factor', type=float, help='Size factor to normalize count data', default=None)
-parser.add_argument('--report_mcmc_progress', type=bool, help='Print progress bar of MCMC run (boolean)', default=False )
-parser.add_argument('--output_dir', type=str, help='Output directory', default=None )
+parser.add_argument('--report_mcmc_progress', type=str, help='Print progress bar of MCMC run (boolean)', default='False')
+parser.add_argument('--output_dir', type=str, help='Output directory', default=None)
 
 args = parser.parse_args()
 
@@ -31,6 +31,10 @@ gene_fn = args.gene_fn
 count_matrix_fn = args.count_matrix_fn
 output_dir = args.output_dir
 report_mcmc_progress = args.report_mcmc_progress
+if report_mcmc_progress == 'False':
+    report_mcmc_progress = False
+else:
+    report_mcmc_progress = True
 n_mcmc_iter = args.n_mcmc_iter
 
 print('Loading Count Matrix...')

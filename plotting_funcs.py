@@ -95,7 +95,7 @@ def make_fit_plot(mcmc,gene,type_,n_discard=5000,use_max_args=True,gene_lab=None
             func_ = np.array([sample[0]]*len(xdata))
         plt.plot(xdata,func_, '-',color='blue',linewidth=1,alpha=0.1)
     if gene_lab is not None:
-        plt.title(gene+', '+type_ + ' fit',fontsize=20)
+        plt.title(gene_lab+', '+type_ + ' fit',fontsize=20)
     else:
         plt.title(gene+', '+type_ + ' fit',fontsize=20)
     plt.xticks(fontsize=16)
@@ -113,7 +113,7 @@ def make_joint_fit_plot(mcmc,gene,n_discard=5000,use_max_args=True,gene_lab=None
     xdata = range(len(expr_dict[gene]))
     plt.plot(xdata, expr_dict[gene],'.', markerfacecolor='None',color='darkgray', lw=0.1, markersize=10, alpha=1,zorder=-1)
     if gene_lab is not None:
-        plt.title(gene,fontsize=20)
+        plt.title(gene_lab,fontsize=20)
     else:
         plt.title(gene,fontsize=20)
     plt.xlabel('Pseudotime Ordering',fontsize=18)
@@ -197,7 +197,7 @@ def make_joint_fit_and_bic_estimate_plot(mcmc,gene,n_discard=5000,use_max_args=T
         sns.distplot(samplers['bic_subs_dict'][type_],color=color_dict[type_],label=label_dict[type_])
 
     if gene_lab is not None:
-        plt.title(gene+' BIC estimates on 98% subsets',fontsize=20)
+        plt.title(gene_lab+' BIC estimates on 98% subsets',fontsize=20)
     else:
         plt.title(gene+' BIC estimates on 98% subsets',fontsize=20)
     plt.xlabel('BIC',fontsize=18)

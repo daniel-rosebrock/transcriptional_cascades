@@ -190,6 +190,7 @@ def load_in_all_pkls(pkl_dir,sub_genes=None):
     inflection_points,inflection_points_2,inflection_point_derivs,inflection_point_derivs_2 = {},{},{},{}
     iter_ = 0
     for j,pkl_fn in enumerate(os.listdir(pkl_dir)):
+        print('Loading pkls...')
         if '.info.pkl' not in pkl_fn: continue
         iter_+=1
         if iter_%100 == 0: print(iter_)

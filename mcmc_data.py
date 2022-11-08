@@ -53,7 +53,7 @@ class mcmc_data():
                 self.bic_avg_params[gene]['uniform']  
         self.sorted_mode_bic = sorted(bic_diff.items(),key=lambda x:x[1])
         self.sorted_mode_bic_tfs = [x for x in self.sorted_mode_bic if 
-            x[0].upper() in self.tfs]
+            x[0] in self.tfs]
         if sub_tf == True:
             self.genes_good_fit = [x[0] for x in self.sorted_mode_bic_tfs[:n_top]]
         else:

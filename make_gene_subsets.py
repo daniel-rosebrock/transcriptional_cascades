@@ -7,7 +7,7 @@ from argparse import RawDescriptionHelpFormatter
 parser = ArgumentParser(description='Make gene subsets')
 parser.add_argument('--count_matrix_fn', type=str, help='Count Matrix ordered by psueodtime', default=None)
 parser.add_argument('--n_subsets', type=int, help='Numer of subset files to make', default=1000)
-parser.add_argument('--min_expr', type=int, help='Minimum percent of cells where gene is expressed', default=0.01)
+parser.add_argument('--min_expr', type=float, help='Minimum percent of cells where gene is expressed', default=0.01)
 parser.add_argument('--output_dir', type=str, help='Output directory', default=None )
 
 args = parser.parse_args()

@@ -8,7 +8,7 @@ As an example dataset, the mouse brain atlas from [Manno et al.](https://www.nat
 ## Run MCMC on a set of genes 
    - data/check.tsv contains a list of genes to run MCMC
 
-In order to run the MCMC on an input file, number of MCMC iterations needs to be specified (default is 10000) and an output directory. The MCMC is an affine-invariant ensemble MCMC implemented in [emcee](https://arxiv.org/abs/1202.3665) package. Here is an example:  
+In order to run the MCMC on an input file, the number of MCMC iterations needs to be specified (default is 10000) and an output directory must be specified. The MCMC is an affine-invariant ensemble MCMC implemented using the [emcee](https://arxiv.org/abs/1202.3665) package. Here is an example:  
 
     python run_mcmc.py --gene_fn data/check.tsv --count_matrix_fn data/e14_5_mouse_forebrain_neuron_diff.raw_count_matrix.tsv --n_mcmc_iter 10000 --report_mcmc_progress True --output_dir outputs/e14_5_forebrain_dorsal/
 

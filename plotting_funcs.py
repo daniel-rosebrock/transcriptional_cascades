@@ -574,9 +574,17 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
     sns.distplot(mcmc.inflection_points[gene2],color=color1_gene2,label=gene_label2)#bins=n_bins
     plt.xlabel('Pseudotime',fontsize=14)
     plt.xticks(fontsize=14)
-    print('Inflec 1 overlap: ',histogram_intersection([mcmc.inflection_points[gene2],mcmc.inflection_points[gene1]],n_bins=100))
-    plt.title('Inflection Point 1, p='+str(round(histogram_intersection([mcmc.inflection_points[gene2],
-                                                                         mcmc.inflection_points[gene1]],n_bins=100),3)),fontsize=14)
+    pval = histogram_intersection([mcmc.inflection_points[gene2],mcmc.inflection_points[gene1]],n_bins=100)
+    if pval >= 0.01:
+        pval_label = 'p='+str(round(pval,3))
+    else:
+        if pval == 0:
+            print(min([len(mcmc.inflection_points[gene2]),len(mcmc.inflection_points[gene1])]))
+            pval_label = 'p<'+"{:.2e}".format(min([len(mcmc.inflection_points[gene2]),len(mcmc.inflection_points[gene1])]))
+        else:
+            pval_label = 'p='+"{:.2e}".format(pval)
+    print('Inflec 1 overlap: ',pval_label)
+    plt.title('Inflection Point 1, '+pval_label,fontsize=14)
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     plt.ylabel('Density',fontsize=14)
     ax.yaxis.tick_right()
@@ -596,9 +604,17 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
     plt.ylabel('')
     plt.xticks(fontsize=14)
     if (mcmc.inflection_points_2[gene1] is not None) and (mcmc.inflection_points_2[gene2] is not None):
-        print('Inflec 2 overlap: ',histogram_intersection([mcmc.inflection_points_2[gene2],mcmc.inflection_points_2[gene1]],n_bins=100))
-        plt.title('Inflection Point 2, p='+str(round(histogram_intersection([mcmc.inflection_points_2[gene2],
-                                                                             mcmc.inflection_points_2[gene1]],n_bins=100),3)),fontsize=14)
+        pval = histogram_intersection([mcmc.inflection_points_2[gene2],mcmc.inflection_points_2[gene1]],n_bins=100)
+        if pval >= 0.01:
+            pval_label = 'p='+str(round(pval,3))
+        else:
+            if pval == 0:
+                print(min([len(mcmc.inflection_points_2[gene2]),len(mcmc.inflection_points_2[gene1])]))
+                pval_label = 'p<'+"{:.2e}".format(min([len(mcmc.inflection_points_2[gene2]),len(mcmc.inflection_points_2[gene1])]))
+            else:
+                pval_label = 'p='+"{:.2e}".format(pval)
+        print('Inflec 2 overlap: ',pval_label)
+        plt.title('Inflection Point 2, '+pval_label,fontsize=14)
     else:
         plt.title('Inflection Point 2',fontsize=14)
     ax.yaxis.tick_right()

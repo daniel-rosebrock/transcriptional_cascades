@@ -316,8 +316,8 @@ def measure_best_fits(samplers,info,ordered_expression,bic_subs_dict):
     best_fit = 'uniform' #initiate best fit as uniform -- update if threshholds met
     inflection_points,inflection_points_2,inflection_point_derivs,inflection_point_derivs_2 = None,None,None,None
     if (max(bic_subs_dict['double sigmoidal']) - min(bic_subs_dict['uniform']) < 0) & \
-        (max(bic_subs_dict['double sigmoidal']) - np.percentile(bic_subs_dict['gauss'],5) < 0) & \
-        (max(bic_subs_dict['double sigmoidal']) - np.percentile(bic_subs_dict['sigmoidal'],5) < 0):
+        (np.mean(bic_subs_dict['double sigmoidal']) - np.mean(bic_subs_dict['gauss']) < 0):
+        (np.mean(bic_subs_dict['double sigmoidal']) - np.mean(bic_subs_dict['sigmoidal']) < 0):
         best_fit = 'double sigmoidal'
         ## get flattened chains and estimate inflection points and derivs ##
         # double_sig params: b_min, b_max, b_final, x1, x2, k1, k2

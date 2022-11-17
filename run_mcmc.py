@@ -37,6 +37,9 @@ else:
     report_mcmc_progress = True
 n_mcmc_iter = args.n_mcmc_iter
 
+#set random seed
+np.random.seed(1234)
+
 print('Loading Count Matrix...')
 counts_dict,counts_dict_by_cell,cells,genes_full = read_in_count_matrix_full(count_matrix_fn)
 

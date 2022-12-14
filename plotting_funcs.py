@@ -9,8 +9,30 @@ import operator
 from scipy.stats import gaussian_kde
 import seaborn as sns
 import pickle as pkl
+import matplotlib
 from matplotlib import gridspec
 from matplotlib.ticker import FormatStrFormatter
+from matplotlib import cm
+
+def make_mean_var_relationship_plot(mcmc):
+    popt, xdata, log_x, log_y, highly_disp, non_highly_disp = estimate_global_dispersion_param(mcmc.counts_dict,return_full_data=True)
+    print('popt:',popt)
+    fig = plt.figure(figsize=(6,6))
+    ax = plt.subplot(111)
+    plt.scatter(log_x[non_highly_disp],log_y[non_highly_disp],alpha=1,s=30,color='black',facecolor='None',
+                label='Genes used for esimtating $\phi$')
+    plt.xlabel('log$_{10}$(mean UMI counts)',fontsize=18)
+    plt.ylabel('log$_{10}$(variance UMI counts)',fontsize=18)
+    plt.title('Mean-Variance Relationship UMI counts',fontsize=18)
+    plt.scatter(log_x[highly_disp],log_y[highly_disp],alpha=1,s=2,color='blue',label='Genes excluded for esimtating $\phi$')
+    plt.plot(sorted(log_x),np.log(var_func_nb(np.array(sorted(xdata)),popt))/np.log(10),'r-',linewidth=2,
+            label='Least-Squares fit $\sigma^2 = \mu+\mu^2/\phi$')
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize=14)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    return fig
 
 def plot_final_curves(mcmc,gene,type_,n_discard=5000,use_max_args=True,figsize=(8,4),idx=-1,gene_lab=None):
     samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
@@ -461,6 +483,35 @@ def plot_autocorrelation_func(mcmc,gene,autocorrelations):
     
     return fig
 
+def make_autocorrelation_full_plot(mcmc,autocorrelations):
+    fig = plt.figure(figsize=(8,4))
+    ax = plt.subplot(111)
+    clrs = sns.color_palette('Set1', n_colors=10)  # a list of RGB tuples
+    color_dict = {'gauss':clrs[0],'sigmoidal':clrs[1],'double sigmoidal':clrs[2],'uniform':clrs[3]}
+    colors = sns.color_palette('tab10', n_colors=10)  # a list of RGB tuples
+    full_vals = []
+    pos = [0,1,2,3]
+    types_arg_ = []
+    types_autocorrtimes = {'uniform':[],'gauss':[],'sigmoidal':[],'double sigmoidal':[]}
+    types_ = ['uniform','gauss','sigmoidal','double sigmoidal']
+    for gene in mcmc.best_fits:
+        type_ = mcmc.best_fits[gene]
+        types_autocorrtimes[type_].append(np.mean(autocorrelations[gene]['autocorr_time_estimates']))
+    for type_ in types_autocorrtimes:
+        full_vals.append(types_autocorrtimes[type_])
+        types_arg_.extend([type_]*len(types_autocorrtimes[type_]))
+    parts = ax.violinplot(full_vals, positions=pos, showmeans=False, showmedians=False,showextrema=False, widths=0.7, bw_method='silverman')
+    for j,bod in enumerate(parts['bodies']):
+        bod.set_color(color_dict[types_[j]])
+        bod.set_alpha(1)
+        bod.set_edgecolor('black')
+    plt.xticks(range(len(pos)),[x+'\n(N = '+str(len(types_autocorrtimes[x]))+')' if x != 'gauss' else 
+                               'Gaussian\n(N = '+str(len(types_autocorrtimes[x]))+')' for x in types_],fontsize=16)
+    plt.ylabel(r'$\hat{\tau}_f$ estimates',fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.title('Autocorrelation time',fontsize=18)
+    return fig
+
 def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2=None,yticks1=None,yticks2=None,
     gene_lab1=None,gene_lab2=None):
     clrs = sns.color_palette('Set1', n_colors=10)  # a list of RGB tuples
@@ -580,7 +631,7 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
     else:
         if pval == 0:
             print(min([len(mcmc.inflection_points[gene2]),len(mcmc.inflection_points[gene1])]))
-            pval_label = 'p<'+"{:.2e}".format(min([len(mcmc.inflection_points[gene2]),len(mcmc.inflection_points[gene1])]))
+            pval_label = 'p<'+"{:.2e}".format(1/min([len(mcmc.inflection_points[gene2]),len(mcmc.inflection_points[gene1])]))
         else:
             pval_label = 'p='+"{:.2e}".format(pval)
     print('Inflec 1 overlap: ',pval_label)
@@ -593,7 +644,7 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
     else:
         plt.yticks([x/100 for x in range(0,int(plt.ylim()[1]*100)+1)])
     plt.yticks(fontsize=14)
-    plt.legend(frameon=False,fontsize=12)
+    plt.legend(frameon=False,fontsize=14)
 
     ax = plt.subplot(gs[:,8:])
     if mcmc.inflection_points_2[gene1] is not None:
@@ -610,7 +661,8 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
         else:
             if pval == 0:
                 print(min([len(mcmc.inflection_points_2[gene2]),len(mcmc.inflection_points_2[gene1])]))
-                pval_label = 'p<'+"{:.2e}".format(min([len(mcmc.inflection_points_2[gene2]),len(mcmc.inflection_points_2[gene1])]))
+                pval_label = 'p<'+"{:.2e}".format(1/min([len(mcmc.inflection_points_2[gene2]),
+                    len(mcmc.inflection_points_2[gene1])]))
             else:
                 pval_label = 'p='+"{:.2e}".format(pval)
         print('Inflec 2 overlap: ',pval_label)
@@ -624,10 +676,11 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
         plt.yticks([x/100 for x in range(0,int(plt.ylim()[1]*100)+1)])
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     plt.yticks(fontsize=14)
-    plt.legend(frameon=False,fontsize=12)
+    plt.legend(frameon=False,fontsize=14)
     return fig
 
-def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=None, violin_cutoff=True, height=0.5):
+def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=None, violin_cutoff=True, 
+    height=0.5,yticks_italics=False):
     fig = plt.figure(figsize=(figsize[0],figsize[1]))
     ax = plt.subplot(111)
     iter_ = 0
@@ -637,7 +690,7 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
         if mcmc.best_fits[gene] != 'uniform':
             non_unif_fits[gene] = mcmc.inflection_points[gene]
     for gene in [y[0] for y in sorted(non_unif_fits.items(),key = lambda x:np.mean(x[1]))]:
-        mcmc.ordered_expression = mcmc.expr_dict[gene]
+        ordered_expression = mcmc.expr_dict[gene]
         if tfs is not None:
             if gene not in tfs: continue
         mode = np.mean(mcmc.inflection_points[gene])
@@ -655,7 +708,7 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
                 mode_new = mode
             else:
                 mode_new = 0
-            if mode2 < len(mcmc.ordered_expression):
+            if mode2 < len(ordered_expression):
                 if deriv_mode2 > 0:
                     color='red'
                 else:
@@ -664,7 +717,7 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
                 fig = add_violin(fig,mcmc.inflection_points_2[gene],iter_,color,violin_cutoff,height)
                 mode2_new = mode2
             else:
-                mode2_new = len(mcmc.ordered_expression)
+                mode2_new = len(ordered_expression)
             plt.plot([mode_new,mode2_new],[iter_,iter_],'--',color='darkgray',zorder=1,linewidth=1)
         elif mcmc.best_fits[gene] == 'double sigmoidal':
             mode2 = np.mean(mcmc.inflection_points_2[gene])
@@ -696,7 +749,10 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
             gene_labs.append(gene.split("|")[1])
         else:
             gene_labs.append(gene)
-    plt.yticks(range(0,iter_,-1),gene_labs,fontsize=14)
+    if yticks_italics:
+        plt.yticks(range(0,iter_,-1),[r'$\it{'+gene.replace("-",'}$-$\it{')+'}$' for gene in gene_labs],fontsize=14)
+    else:
+        plt.yticks(range(0,iter_,-1),gene_labs,fontsize=14)
     for yy in range(0,iter_,-1):
         plt.axhline(yy,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)
     for xx in plt.xticks()[0]:
@@ -711,3 +767,407 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
     if xlim is not None:
         plt.xlim(xlim[0],xlim[1])
     return fig
+
+def make_inflec_point_comp_plot_2(mcmc,gene_list,gene_list_title=None,n_discard=5000,figsize=(12,4),ylim=None):
+    clrs = sns.color_palette('Set1', n_colors=10)  # a list of RGB tuples
+    color_dict = {'gauss':clrs[0],'sigmoidal':clrs[1],'double sigmoidal':clrs[2],'uniform':clrs[3]}
+    fig = plt.figure(figsize=figsize)
+    n_genes = len(gene_list)
+    for k,gene in enumerate(gene_list):
+        print(k,n_genes)
+        ax = plt.subplot(n_genes,1,k+1)
+        samplers = pkl.load(open(mcmc.pkl_dir+gene+'.pkl','rb'))
+        type_ = mcmc.best_fits[gene]
+        sampler = samplers[type_]
+        expr_dict = mcmc.expr_dict
+        xdata = range(len(expr_dict[gene]))
+        ordered_expression = np.array(expr_dict[gene])
+        flat_samples = sampler.get_chain(discard=n_discard, flat=False)[:,mcmc.max_args_full[gene][type_]]
+        flat_samples = np.concatenate(flat_samples,axis=0)
+        inds = np.random.randint(len(flat_samples), size=100)
+        plt.plot(xdata, ordered_expression,'.', markerfacecolor='None',color='darkgray', 
+                 lw=0.1, markersize=7, alpha=1,zorder=-1)
+        for ind in inds:
+            sample = flat_samples[ind]
+            if type_ == 'gauss':
+                func_ = gaussian(xdata, *sample)
+            elif type_ == 'sigmoidal':
+                func_ = sigmoid(xdata, *sample)
+            elif type_ == 'double sigmoidal':
+                func_ = double_sigmoid(xdata, *sample)
+            else:
+                func_ = np.array([sample[0]]*len(xdata))
+            plt.plot(xdata,func_, '-',color=color_dict[type_],linewidth=1,alpha=0.1)
+        if gene_list_title is not None:
+            plt.title(gene_list_title[k]+', '+type_ ,fontsize=16)
+        else:
+            plt.title(gene+', '+type_ ,fontsize=16)
+        if k != n_genes-1:
+            plt.xticks([])
+        plt.yticks(fontsize=14)
+        max_yticks = int(plt.ylim()[1])
+        plt.yticks(range(max_yticks+1),fontsize=14)
+        plt.ylabel('Expression',fontsize=14)
+        if np.mean(mcmc.inflection_point_derivs[gene]) > 0:
+            if type_ == 'double sigmoidal': color1_gene1 = 'salmon'
+            else: color1_gene1='red'
+        else:
+            if type_ == 'double sigmoidal': color1_gene1 = 'dodgerblue'
+            else: color1_gene1='blue'
+        if mcmc.inflection_points_2[gene] is not None:
+            if np.mean(mcmc.inflection_point_derivs_2[gene]) > 0:
+                if type_ == 'double sigmoidal': color2_gene1 = 'salmon'
+                else: color2_gene1='red'
+            else:
+                if type_ == 'double sigmoidal': color2_gene1 = 'dodgerblue'
+                else: color2_gene1='blue'
+        if ylim is not None:
+            plt.ylim(ylim)
+        plt.xlim(0,len(ordered_expression))
+    plt.xticks(fontsize=14)
+    plt.xlabel('Pseudotime Ordering',fontsize=14)
+    return fig
+
+def plot_transcriptional_cascade_heatmap(mcmc,title=None,xlim=None, figsize=(7,10), tfs=None, cmap=cm.viridis,type_=None,
+    ytick_fontsize=14,yticks_italics=False):
+    fig = plt.figure(figsize=(figsize[0],figsize[1]))
+    ax = plt.subplot(111)
+    iter_ = 0
+    gene_labs = []
+    non_unif_fits = {}
+    for gene in mcmc.inflection_points:
+        if mcmc.best_fits[gene] != 'uniform':
+            non_unif_fits[gene] = mcmc.inflection_points[gene]
+    for gene in [y[0] for y in sorted(non_unif_fits.items(),key = lambda x:get_mode(x[1]))]:
+        if tfs is not None:
+            if gene not in tfs: continue
+        if type_ is not None:
+            keep = False
+            if type_ == 'sig up':
+                if mcmc.best_fits[gene] == 'sigmoidal':
+                    if np.mean(mcmc.inflection_point_derivs[gene]) > 0:
+                        keep = True
+                elif mcmc.best_fits[gene] == 'double sigmoidal':
+                    if (np.mean(mcmc.inflection_point_derivs[gene]) > 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) > 0):
+                        keep = True
+            elif type_ == 'sig down':
+                if mcmc.best_fits[gene] == 'sigmoidal':
+                    if np.mean(mcmc.inflection_point_derivs[gene]) < 0:
+                        keep = True
+                elif mcmc.best_fits[gene] == 'double sigmoidal':
+                    if (np.mean(mcmc.inflection_point_derivs[gene]) < 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) < 0):
+                        keep = True
+            elif type_ == 'transient up':
+                if mcmc.best_fits[gene] == 'gauss':
+                    keep = True
+                if mcmc.best_fits[gene] == 'double sigmoidal':
+                    if (np.mean(mcmc.inflection_point_derivs[gene]) > 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) < 0):
+                        keep = True
+            elif type_ == 'transient down':
+                if mcmc.best_fits[gene] == 'double sigmoidal':
+                    if (np.mean(mcmc.inflection_point_derivs[gene]) < 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) > 0):
+                        keep = True
+            if not keep:
+                continue
+        print(gene)
+        ordered_expression = mcmc.expr_dict[gene]
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=max(ordered_expressionression))#np.percentile(ordered_expression,99))
+        for ii in range(0,len(ordered_expression)):
+            plt.bar(ii,1,bottom=iter_-0.5,color=cmap(norm(ordered_expression[ii])),width=1)
+        iter_ -= 1
+        if '|' in gene:
+            gene_labs.append(gene.split("|")[1])
+        else:
+            gene_labs.append(gene)
+    if yticks_italics:
+        plt.yticks(range(0,iter_,-1),[r'$\it{'+gene.replace("-",'}$-$\it{')+'}$' for gene in gene_labs],fontsize=ytick_fontsize)
+    else:
+        plt.yticks(range(0,iter_,-1),gene_labs,fontsize=ytick_fontsize)
+    for yy in range(0,iter_,-1):
+        plt.axhline(yy,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)
+    for xx in plt.xticks()[0]:
+        plt.axvline(xx,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)
+    ax.yaxis.tick_right()
+    if title is not None:
+        plt.title(title,fontsize=24)
+    else:
+        plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
+    plt.xlabel('Pseudotime',fontsize=18)
+    plt.xticks(fontsize=16)
+    if xlim is not None:
+        plt.xlim(xlim[0],xlim[1])
+    plt.ylim(iter_+0.5,0.5)
+    return fig
+
+def plot_transcriptional_cascade_heatmap_full(mcmc,title=None,xlim=None, figsize=(7,10), tfs=None, cmap=cm.viridis,
+    ytick_fontsize=14,yticks_italics=False):
+    fig = plt.figure(figsize=(figsize[0],figsize[1]))
+    ax = plt.subplot(111)
+    iter_ = 0
+    ytic_locs = []
+    gene_labs = []
+    non_unif_fits = {}
+    for gene in mcmc.inflection_points:
+        if mcmc.best_fits[gene] != 'uniform':
+            non_unif_fits[gene] = mcmc.inflection_points[gene]
+    for type_ in ['sig down','sig up','transient up','transient down']:
+        print(type_)
+        for gene in [y[0] for y in sorted(non_unif_fits.items(),key = lambda x:get_mode(x[1],n_bins=50))]:
+            if tfs is not None:
+                if gene not in tfs: continue
+            if type_ is not None:
+                keep = False
+                if type_ == 'sig up':
+                    if mcmc.best_fits[gene] == 'sigmoidal':
+                        if np.mean(mcmc.inflection_point_derivs[gene]) > 0:
+                            keep = True
+                    elif mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) > 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) > 0):
+                            keep = True
+                elif type_ == 'sig down':
+                    if mcmc.best_fits[gene] == 'sigmoidal':
+                        if np.mean(mcmc.inflection_point_derivs[gene]) < 0:
+                            keep = True
+                    elif mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) < 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) < 0):
+                            keep = True
+                elif type_ == 'transient up':
+                    if mcmc.best_fits[gene] == 'gauss':
+                        keep = True
+                    if mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) > 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) < 0):
+                            keep = True
+                elif type_ == 'transient down':
+                    if mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) < 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) > 0):
+                            keep = True
+                if not keep:
+                    continue
+            print(gene)
+            ordered_expression = mcmc.expr_dict[gene]
+            norm = matplotlib.colors.Normalize(vmin=0, vmax=np.percentile(ordered_expression,99))
+            for ii in range(0,len(ordered_expression)):
+                plt.bar(ii,1,bottom=iter_-0.5,color=cmap(norm(ordered_expression[ii])),width=1)
+            ytic_locs.append(iter_)
+            iter_ -= 1
+            if '|' in gene:
+                gene_labs.append(gene.split("|")[1])
+            else:
+                gene_labs.append(gene)
+        iter_ -= 1
+    if yticks_italics:
+        plt.yticks(ytic_locs,[r'$\it{'+gene.replace("-",'}$-$\it{')+'}$' for gene in gene_labs],fontsize=ytick_fontsize)
+    else:
+        plt.yticks(ytic_locs,gene_labs,fontsize=ytick_fontsize)
+    if title is not None:
+        plt.title(title,fontsize=24)
+    else:
+        plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
+    plt.xlabel('Pseudotime',fontsize=18)
+    plt.xticks(fontsize=16)
+    if xlim is not None:
+        plt.xlim(xlim[0],xlim[1])
+    plt.ylim(iter_+1.5,0.5)
+    return fig
+
+def plot_transcriptional_cascade_violins_full(mcmc,title=None,xlim=None, figsize=(7,10), tfs=None, violin_cutoff=True,
+    height=0.5,yticks=False,yticks_italics=False,ytick_fontsize=14):
+    fig = plt.figure(figsize=(figsize[0],figsize[1]))
+    ax = plt.subplot(111)
+    iter_ = 0
+    ytic_locs = []
+    gene_labs = []
+    non_unif_fits = {}
+    for gene in mcmc.inflection_points:
+        if mcmc.best_fits[gene] != 'uniform':
+            non_unif_fits[gene] = mcmc.inflection_points[gene]
+    for type_ in ['sig down','sig up','transient up','transient down']:
+        print(type_)
+        for gene in [y[0] for y in sorted(non_unif_fits.items(),key = lambda x:get_mode(x[1],n_bins=50))]:
+            if tfs is not None:
+                if gene not in tfs: continue
+            if type_ is not None:
+                keep = False
+                if type_ == 'sig up':
+                    if mcmc.best_fits[gene] == 'sigmoidal':
+                        if np.mean(mcmc.inflection_point_derivs[gene]) > 0:
+                            keep = True
+                    elif mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) > 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) > 0):
+                            keep = True
+                elif type_ == 'sig down':
+                    if mcmc.best_fits[gene] == 'sigmoidal':
+                        if np.mean(mcmc.inflection_point_derivs[gene]) < 0:
+                            keep = True
+                    elif mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) < 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) < 0):
+                            keep = True
+                elif type_ == 'transient up':
+                    if mcmc.best_fits[gene] == 'gauss':
+                        keep = True
+                    if mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) > 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) < 0):
+                            keep = True
+                elif type_ == 'transient down':
+                    if mcmc.best_fits[gene] == 'double sigmoidal':
+                        if (np.mean(mcmc.inflection_point_derivs[gene]) < 0) & (np.mean(mcmc.inflection_point_derivs_2[gene]) > 0):
+                            keep = True
+                if not keep:
+                    continue
+            print(gene)
+            ordered_expression = mcmc.expr_dict[gene]
+            mode = np.mean(mcmc.inflection_points[gene])
+            mode = get_mode(mcmc.inflection_points[gene],n_bins=50)
+            if mcmc.best_fits[gene] == 'gauss':
+                mode2 = np.mean(mcmc.inflection_points_2[gene])
+                mode2 = get_mode(mcmc.inflection_points_2[gene])
+                deriv_mode1 = np.mean(mcmc.inflection_point_derivs[gene])
+                deriv_mode2 = np.mean(mcmc.inflection_point_derivs_2[gene])
+                if mode > 0:
+                    if deriv_mode1 > 0:
+                        color='red'
+                    else:
+                        color='blue'
+                    plt.plot(mode,iter_-0.25,'o',color=color,markersize=6)
+                    fig = add_violin(fig,mcmc.inflection_points[gene],iter_-0.25,color,violin_cutoff,height)
+                    mode_new = mode
+                else:
+                    mode_new = 0
+                if mode2 < len(ordered_expression):
+                    if deriv_mode2 > 0:
+                        color='red'
+                    else:
+                        color='blue'
+                    plt.plot(mode2,iter_-0.25,'o',color=color,markersize=6)
+                    fig = add_violin(fig,mcmc.inflection_points_2[gene],iter_-0.25,color,violin_cutoff,height)
+                    mode2_new = mode2
+                else:
+                    mode2_new = len(ordered_expression)
+                plt.plot([mode_new,mode2_new],[iter_-0.25,iter_-0.25],'--',color='darkgray',zorder=1,linewidth=1)
+            elif mcmc.best_fits[gene] == 'double sigmoidal':
+                mode2 = np.mean(mcmc.inflection_points_2[gene])
+                mode2 = get_mode(mcmc.inflection_points_2[gene],n_bins=50)
+                deriv_mode1 = np.mean(mcmc.inflection_point_derivs[gene])
+                deriv_mode2 = np.mean(mcmc.inflection_point_derivs_2[gene])
+                if deriv_mode1 > 0:
+                    color = 'salmon'
+                else:
+                    color = 'dodgerblue'
+                plt.plot(mode,iter_-0.25,'o',color=color,markersize=6)
+                fig = add_violin(fig,mcmc.inflection_points[gene],iter_-0.25,color,violin_cutoff,height)
+                if deriv_mode2 > 0:
+                    color = 'salmon'
+                else:
+                    color='dodgerblue'
+                plt.plot(mode2,iter_-0.25,'o',color=color,markersize=6)
+                fig = add_violin(fig,mcmc.inflection_points_2[gene],iter_-0.25,color,violin_cutoff,height)
+                plt.plot([mode,mode2],[iter_-0.25,iter_-0.25],'--',color='darkgray',zorder=1,linewidth=1)
+            else:
+                deriv_mode = get_mode(mcmc.inflection_point_derivs[gene])
+                if deriv_mode > 0:
+                    plt.plot(mode,iter_-0.25,'o',color='red',markersize=6)
+                    fig = add_violin(fig,mcmc.inflection_points[gene],iter_-0.25,'red',violin_cutoff,height)
+                else:
+                    plt.plot(mode,iter_-0.25,'o',color='blue',markersize=6)
+                    fig = add_violin(fig,mcmc.inflection_points[gene],iter_-0.25,'blue',violin_cutoff,height)
+            plt.axhline(iter_-0.25,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)
+            iter_ -= 1
+        iter_ -= 1
+    if not yticks:
+        plt.yticks([])
+    else:
+        if yticks_italics:
+            plt.yticks(ytic_locs,[r'$\it{'+gene.replace("-",'}$-$\it{')+'}$' for gene in gene_labs],fontsize=ytick_fontsize)
+        else:
+            plt.yticks(ytic_locs,gene_labs,fontsize=ytick_fontsize)
+    #for xx in plt.xticks()[0]:
+    #    plt.axvline(xx,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)
+    #ax.yaxis.tick_right()
+    if title is not None:
+        plt.title(title,fontsize=24)
+    else:
+        plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
+    plt.xlabel('Pseudotime',fontsize=18)
+    plt.xticks(fontsize=16)
+    if xlim is not None:
+        plt.xlim(xlim[0],xlim[1])
+    plt.ylim(iter_+1.5,0.5)
+    return fig
+
+def plot_transcriptional_cascade_split(fig,ax,inflection_points,inflection_points_2,inflection_point_derivs,
+    inflection_point_derivs_2,best_fits,expr_dict,genes_sub,
+    title='Transcriptional Cascade',xlim=None, tfs=None, axlabs='right',
+    order=None, yticks_italics=False):
+    iter_ = 0
+    gene_labs = []
+    inflection_points_sub = {}
+    for gene in genes_sub:
+        inflection_points_sub[gene] = inflection_points[gene]
+    if order is not None:
+        ordered_genes = order
+    else:
+        ordered_genes = [y[0] for y in sorted(inflection_points_sub.items(),key = lambda x:get_mode(x[1],n_bins=50))]
+    for gene in ordered_genes:
+        ordered_expression = expr_dict[gene]
+        if tfs is not None:
+            if gene.upper() not in tfs: continue
+        mode = get_mode(inflection_points[gene],n_bins=50)
+        if best_fits[gene] == 'gauss':
+            mode2 = get_mode(inflection_points_2[gene],n_bins=50)
+            if mode > 0:
+                plt.plot(mode,iter_,'o',color='red',markersize=3)
+                fig = add_violin(fig,inflection_points[gene],iter_,'red',)
+                mode_new = mode
+            else:
+                mode_new = 0
+            if mode2 < len(ordered_expression):
+                plt.plot(mode2,iter_,'o',color='blue',markersize=3)
+                fig = add_violin(fig,inflection_points_2[gene],iter_,'blue',)
+                mode2_new = mode2
+            else:
+                mode2_new = len(ordered_expression)
+            plt.plot([mode_new,mode2_new],[iter_,iter_],'--',color='lightgray',zorder=-1,linewidth=2)
+        elif best_fits[gene] == 'double sigmoidal':
+            mode2 = get_mode(inflection_points_2[gene],n_bins=50)
+            deriv_mode1 = np.mean(inflection_point_derivs[gene])
+            deriv_mode2 = np.mean(inflection_point_derivs_2[gene])
+            if deriv_mode1 > 0:
+                plt.plot(mode,iter_,'o',color='salmon',markersize=3)
+                fig = add_violin(fig,inflection_points[gene],iter_,'salmon',)
+            elif deriv_mode1 < 0:
+                plt.plot(mode,iter_,'o',color='dodgerblue',markersize=3)
+                fig = add_violin(fig,inflection_points[gene],iter_,'dodgerblue',)
+            if deriv_mode2 > 0:
+                plt.plot(mode2,iter_,'o',color='salmon',markersize=3)
+                fig = add_violin(fig,inflection_points_2[gene],iter_,'salmon',)
+            elif deriv_mode2 < 0:
+                plt.plot(mode2,iter_,'o',color='dodgerblue',markersize=3)
+                fig = add_violin(fig,inflection_points_2[gene],iter_,'dodgerblue',)
+            plt.plot([mode,mode2],[iter_,iter_],'--',color='lightgray',zorder=-1,linewidth=2)
+        else:
+            deriv_mode = np.mean(inflection_point_derivs[gene])
+            if deriv_mode > 0:
+                plt.plot(mode,iter_,'o',color='red',markersize=3)
+                fig = add_violin(fig,inflection_points[gene],iter_,'red',)
+            else:
+                plt.plot(mode,iter_,'o',color='blue',markersize=3)
+                fig = add_violin(fig,inflection_points[gene],iter_,'blue',)
+        iter_ -= 1
+        if '|' in gene:
+            gene_labs.append(gene.split("|")[1])
+        else:
+            gene_labs.append(gene)
+    if yticks_italics:
+        plt.yticks(range(0,iter_,-1),[r'$\it{'+gene.replace("-",'}$-$\it{')+'}$' for gene in gene_labs],fontsize=18)
+    else:
+        plt.yticks(range(0,iter_,-1),gene_labs,fontsize=18)
+    for yy in range(0,iter_,-1):
+        plt.axhline(yy,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)
+    if axlabs == 'right':
+        ax.yaxis.tick_right()
+    plt.title(title,fontsize=20)
+    plt.xlabel('Pseudotime',fontsize=20)
+    plt.xticks(fontsize=18)
+    if xlim is not None:
+        plt.xlim(xlim[0],xlim[1])
+    return ax,gene_labs

@@ -84,7 +84,7 @@ def var_func_nb(x, b):
     y = x+x**2/b
     return (y)
 
-def estimate_global_dispersion_param(counts_dict,nbins=5):
+def estimate_global_dispersion_param(counts_dict,nbins=5,return_full_data=False):
     means = np.array([np.mean(counts_dict[gene]) for gene in counts_dict.keys()])
     vars_ = np.array([np.var(counts_dict[gene]) for gene in counts_dict.keys()])
     xdata = means[means > 0]
@@ -121,9 +121,12 @@ def estimate_global_dispersion_param(counts_dict,nbins=5):
     non_highly_disp = np.array(non_highly_disp)
     p0 = [1] # this is n mandatory initial guess
     popt, pcov = curve_fit(var_func_nb, xdata[non_highly_disp], ydata[non_highly_disp],p0, method='lm',)
-    return popt[0]
+    if return_full_data:
+        return popt[0], xdata, log_x, log_y, highly_disp, non_highly_disp
+    else:
+        return popt[0]
 
-def get_mode(vals,n_bins=500):
+def get_mode(vals,n_bins=50):
     counts,bins = np.histogram(vals,bins=n_bins)
     return bins[np.argmax(counts)]
 
@@ -139,7 +142,7 @@ def histogram_intersection(vals, n_bins=100):
             overlap_counts[j] = min(overlap_counts[j],count)
     return (sum(overlap_counts)/n_val)
 
-def measure_a_before_b(vals, n_bins=100):
+def measure_a_before_b_old(vals, n_bins=100):
     flat_vals = functools.reduce(operator.iconcat, vals, [])
     max_vals = max(flat_vals)
     min_vals = min(flat_vals)
@@ -151,6 +154,28 @@ def measure_a_before_b(vals, n_bins=100):
     for j,count in enumerate(counts2):
         perc_less_or_equal += counts2[j]/n_tot2*np.sum(counts1[:j])/n_tot1
     return(perc_less_or_equal)
+
+def measure_a_before_b(vals, n_bins=100):
+    flat_vals = functools.reduce(operator.iconcat, vals, [])
+    max_vals = max(flat_vals)
+    min_vals = min(flat_vals)
+    counts1,bins1 = np.histogram(vals[0],range=(min_vals,max_vals),bins=n_bins)
+    counts2,bins2 = np.histogram(vals[1],range=(min_vals,max_vals),bins=n_bins)
+    n_tot1 = np.sum(counts1)
+    n_tot2 = np.sum(counts2)
+    perc_less_or_equal = 0
+    cdf1 = []
+    cdf2 = []
+    for j,(count1,count2) in enumerate(zip(counts1,counts2)):
+        if j == 0:
+            cdf1.append(count1/n_tot1)
+            cdf2.append(count2/n_tot2)
+        else:
+            cdf1.append(cdf1[-1]+count1/n_tot1)
+            cdf2.append(cdf2[-1]+count2/n_tot2)
+    cdf1=np.array(cdf1)
+    cdf2=np.array(cdf2)
+    return(max(cdf1-cdf2))
 
 def double_sig_deriv(x,b_min, b_mid, b_max, x1, x2, k1, k2):
     return k1*(b_mid-b_min)*np.exp(-k1*(x-x1))/((1+np.exp(-k1*(x-x1)))**2)+k2*(b_max-b_mid)*np.exp(-k2*(x-x2))/((1+np.exp(-k2*(x-x2)))**2) 

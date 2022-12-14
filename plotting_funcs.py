@@ -871,7 +871,7 @@ def plot_transcriptional_cascade_heatmap(mcmc,title=None,xlim=None, figsize=(7,1
                 continue
         print(gene)
         ordered_expression = mcmc.expr_dict[gene]
-        norm = matplotlib.colors.Normalize(vmin=0, vmax=max(ordered_expressionression))#np.percentile(ordered_expression,99))
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=max(ordered_expression))#np.percentile(ordered_expression,99))
         for ii in range(0,len(ordered_expression)):
             plt.bar(ii,1,bottom=iter_-0.5,color=cmap(norm(ordered_expression[ii])),width=1)
         iter_ -= 1
@@ -1071,7 +1071,12 @@ def plot_transcriptional_cascade_violins_full(mcmc,title=None,xlim=None, figsize
                     plt.plot(mode,iter_-0.25,'o',color='blue',markersize=6)
                     fig = add_violin(fig,mcmc.inflection_points[gene],iter_-0.25,'blue',violin_cutoff,height)
             plt.axhline(iter_-0.25,linewidth=0.2,color='silver',zorder=-10,alpha=0.3)
+            ytic_locs.append(iter_)
             iter_ -= 1
+            if '|' in gene:
+                gene_labs.append(gene.split("|")[1])
+            else:
+                gene_labs.append(gene)
         iter_ -= 1
     if not yticks:
         plt.yticks([])

@@ -23,4 +23,4 @@ To submit each gene subset in parallel, configure the bash script to use the cor
     ls -1 $PWD/data/pancreas_beta_development_e_14_5_gene_subsets/ | xargs -I {} mxqsub -t 10h -N pancreas_beta_development_e_14_5 --stdout {}.stdout --stderr {}.stderr -w $PWD/outputs_full/pancreas_beta_development_e_14_5 bash $PWD/run_e14_5_pancreas_endocrine.sh $PWD $PWD/data/pancreas_beta_development_e_14_5_gene_subsets/{}
 
 ## Outputs
-The outputs of each MCMC run are stored as pkls, which can be loaded using the mcmc_data class (in mcmc_data.py). The notebook load_mcmc_run.ipynb shows an example of loading the MCMC runs for the subset of genes in data/check.tsv with various plotting examples. The notebook load_mcmc_run_full.ipynb highlights results across all genes in the dataset.
+The outputs of each MCMC run are stored as pkls, which can be loaded using the mcmc_data class (in mcmc_data.py). The notebook load_mcmc_run_e14_5_pancreas_beta.ipynb shows an example of loading the MCMC runs for the subset of genes in data/check.tsv with various plotting examples. The notebook load_mcmc_run_full.ipynb highlights results across all genes in the dataset.

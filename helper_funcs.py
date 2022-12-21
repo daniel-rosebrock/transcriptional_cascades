@@ -470,8 +470,9 @@ def comp_helper_non_simult(gene_relat,gene1,gene2,g1_deriv_mode,g2_deriv_mode):
     if g1_deriv_mode < 0:
         if g2_deriv_mode < 0:
             gene_relat[(gene1,gene2)] = '+'
-        else: #gene1 down then gene1 up
-            gene_relat[(gene1,gene2)] = '-'
+        else: #gene1 down then gene2 up
+            pass
+            #gene_relat[(gene1,gene2)] = '-'
     else: # gene1 up
         if g2_deriv_mode < 0: #gene1 up then gene2 down
             gene_relat[(gene1,gene2)] = '-'
@@ -499,7 +500,7 @@ def compare_genes(gene1,gene2,inflection_points,inflection_point_derivs,
     g2_deriv_mode1 = np.mean(inflection_point_derivs[gene2])
 
     p_overlap1 = histogram_intersection([g1_inflec_points,inflection_points[gene2]])
-    if p_overlap1 > 0.05: #strong overlap of g1 and g2 inflection point 1
+    if p_overlap1 > 0.01: #strong overlap of g1 and g2 inflection point 1
         gene_relat = comp_helper_simult(gene_relat,gene1,gene2,g1_deriv_mode,g2_deriv_mode1)
 
     elif g1_mode < g2_mode1: #NOTE: we still don't know if g1_mode2 < g2_mode1
@@ -510,7 +511,7 @@ def compare_genes(gene1,gene2,inflection_points,inflection_point_derivs,
             g2_mode2 = get_mode(inflection_points_2[gene2])
             g2_deriv_mode2 = np.mean(inflection_point_derivs_2[gene2])
             p_overlap2 = histogram_intersection([g1_inflec_points,inflection_points_2[gene2]])
-            if p_overlap2 > 0.05: #strong overlap of g1 and g2 inflection point 1
+            if p_overlap2 > 0.01: #strong overlap of g1 and g2 inflection point 1
                 gene_relat = comp_helper_simult(gene_relat,gene1,gene2,g1_deriv_mode,g2_deriv_mode2)
 
             if g1_mode < g2_mode2:
@@ -533,6 +534,7 @@ def update_shared_relationships(gene_relationships,gene_relat_all):
             gene_relationships[gene_check] = list(gene_relat_update[gene_check])[0]
     return gene_relationships
 
+#TODO: rewrite code to take in mcmc object
 def build_gene_relationships(genes_good_fit,best_fits,inflection_points,inflection_point_derivs,
     inflection_points_2,inflection_point_derivs_2,tfs=None):
     gene_relationships = {}

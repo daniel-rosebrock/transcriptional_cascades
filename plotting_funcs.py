@@ -20,11 +20,11 @@ def make_mean_var_relationship_plot(mcmc):
     fig = plt.figure(figsize=(6,6))
     ax = plt.subplot(111)
     plt.scatter(log_x[non_highly_disp],log_y[non_highly_disp],alpha=1,s=30,color='black',facecolor='None',
-                label='Genes used for esimtating $\phi$')
+                label='Genes used for estimating $\phi$')
     plt.xlabel('log$_{10}$(mean UMI counts)',fontsize=18)
     plt.ylabel('log$_{10}$(variance UMI counts)',fontsize=18)
     plt.title('Mean-Variance Relationship UMI counts',fontsize=18)
-    plt.scatter(log_x[highly_disp],log_y[highly_disp],alpha=1,s=2,color='blue',label='Genes excluded for esimtating $\phi$')
+    plt.scatter(log_x[highly_disp],log_y[highly_disp],alpha=1,s=2,color='blue',label='Genes excluded for estimating $\phi$')
     plt.plot(sorted(log_x),np.log(var_func_nb(np.array(sorted(xdata)),popt))/np.log(10),'r-',linewidth=2,
             label='Least-Squares fit $\sigma^2 = \mu+\mu^2/\phi$')
     ax.spines["right"].set_visible(False)
@@ -623,7 +623,7 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
     ax = plt.subplot(gs[:,4:8])
     sns.distplot(mcmc.inflection_points[gene1],color=color1_gene1,label=gene_label1)#bins=n_bins
     sns.distplot(mcmc.inflection_points[gene2],color=color1_gene2,label=gene_label2)#bins=n_bins
-    plt.xlabel('Pseudotime',fontsize=14)
+    plt.xlabel('Pseudotime Ordering',fontsize=14)
     plt.xticks(fontsize=14)
     pval = histogram_intersection([mcmc.inflection_points[gene2],mcmc.inflection_points[gene1]],n_bins=100)
     if pval >= 0.01:
@@ -651,7 +651,7 @@ def make_inflec_point_comp_plot(mcmc,gene1,gene2,n_discard=5000,ylim1=None,ylim2
         sns.distplot(mcmc.inflection_points_2[gene1],color=color2_gene1,label=gene_label1)#bins=n_bins
     if mcmc.inflection_points_2[gene2] is not None:
         sns.distplot(mcmc.inflection_points_2[gene2],color=color2_gene2,label=gene_label2)#bins=n_bins
-    plt.xlabel('Pseudotime',fontsize=14)
+    plt.xlabel('Pseudotime Ordering',fontsize=14)
     plt.ylabel('')
     plt.xticks(fontsize=14)
     if (mcmc.inflection_points_2[gene1] is not None) and (mcmc.inflection_points_2[gene2] is not None):
@@ -762,7 +762,7 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
         plt.title(title,fontsize=24)
     else:
         plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
-    plt.xlabel('Pseudotime',fontsize=18)
+    plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.xticks(fontsize=16)
     if xlim is not None:
         plt.xlim(xlim[0],xlim[1])
@@ -892,7 +892,7 @@ def plot_transcriptional_cascade_heatmap(mcmc,title=None,xlim=None, figsize=(7,1
         plt.title(title,fontsize=24)
     else:
         plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
-    plt.xlabel('Pseudotime',fontsize=18)
+    plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.xticks(fontsize=16)
     if xlim is not None:
         plt.xlim(xlim[0],xlim[1])
@@ -963,7 +963,7 @@ def plot_transcriptional_cascade_heatmap_full(mcmc,title=None,xlim=None, figsize
         plt.title(title,fontsize=24)
     else:
         plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
-    plt.xlabel('Pseudotime',fontsize=18)
+    plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.xticks(fontsize=16)
     if xlim is not None:
         plt.xlim(xlim[0],xlim[1])
@@ -1092,7 +1092,7 @@ def plot_transcriptional_cascade_violins_full(mcmc,title=None,xlim=None, figsize
         plt.title(title,fontsize=24)
     else:
         plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
-    plt.xlabel('Pseudotime',fontsize=18)
+    plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.xticks(fontsize=16)
     if xlim is not None:
         plt.xlim(xlim[0],xlim[1])
@@ -1171,7 +1171,7 @@ def plot_transcriptional_cascade_split(fig,ax,inflection_points,inflection_point
     if axlabs == 'right':
         ax.yaxis.tick_right()
     plt.title(title,fontsize=20)
-    plt.xlabel('Pseudotime',fontsize=20)
+    plt.xlabel('Pseudotime Ordering',fontsize=20)
     plt.xticks(fontsize=18)
     if xlim is not None:
         plt.xlim(xlim[0],xlim[1])

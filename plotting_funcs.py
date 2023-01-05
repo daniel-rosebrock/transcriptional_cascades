@@ -749,6 +749,8 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
             gene_labs.append(gene.split("|")[1])
         else:
             gene_labs.append(gene)
+    if xlim is not None:
+        plt.xlim(xlim[0],xlim[1])
     if yticks_italics:
         plt.yticks(range(0,iter_,-1),[r'$\it{'+gene.replace("-",'}$-$\it{')+'}$' for gene in gene_labs],fontsize=14)
     else:
@@ -764,8 +766,6 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
         plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
     plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.xticks(fontsize=16)
-    if xlim is not None:
-        plt.xlim(xlim[0],xlim[1])
     return fig
 
 def make_inflec_point_comp_plot_2(mcmc,gene_list,gene_list_title=None,n_discard=5000,figsize=(12,4),ylim=None):

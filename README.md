@@ -13,7 +13,7 @@ In order to run the MCMC on an input file, the number of MCMC iterations needs t
     python run_mcmc.py --gene_fn data/check.tsv --count_matrix_fn data/pancreas_beta_development_e_14_5.raw_count_matrix.tsv --n_mcmc_iter 10000 --report_mcmc_progress True --output_dir outputs/e14_5_pancreas_beta_development
 
 ## Make gene subsets
-Each gene can be run in parallel, for example on a HPC cluster. To generate input gene files which are then run in parallel, genes which are expressed in at least 1% of cells are split into 1000 input files. Here is an example to generate input gene subset files (subsets are stored in data/pancreas_beta_development_e_14_5_gene_subsets):
+Each gene can be run in parallel, for example on a HPC cluster. To generate input gene files which are then run in parallel, genes which are expressed in at least 1% of cells are split into N input files. Here is an example to generate 1000 input gene subset files (subsets are stored in data/pancreas_beta_development_e_14_5_gene_subsets):
     
     python make_gene_subsets.py --count_matrix_fn data/pancreas_beta_development_e_14_5.raw_count_matrix.tsv --n_subsets 1000 --min_expr 0.01 --output_dir data/pancreas_beta_development_e_14_5_gene_subsets/
 

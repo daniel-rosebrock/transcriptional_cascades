@@ -749,8 +749,6 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
             gene_labs.append(gene.split("|")[1])
         else:
             gene_labs.append(gene)
-    if xlim is not None:
-        plt.xlim(xlim[0],xlim[1])
     if yticks_italics:
         plt.yticks(range(0,iter_,-1),[r'$\it{'+gene.replace("-",'}$-$\it{')+'}$' for gene in gene_labs],fontsize=14)
     else:
@@ -766,6 +764,8 @@ def plot_transcriptional_cascade(mcmc,title=None,xlim=None, figsize=(7,10), tfs=
         plt.title('Transcriptional Cascades '+mcmc.name,fontsize=20)
     plt.xlabel('Pseudotime Ordering',fontsize=18)
     plt.xticks(fontsize=16)
+    if xlim is not None:
+        plt.xlim(xlim[0],xlim[1])
     return fig
 
 def make_inflec_point_comp_plot_2(mcmc,gene_list,gene_list_title=None,n_discard=5000,figsize=(12,4),ylim=None):
@@ -871,7 +871,7 @@ def plot_transcriptional_cascade_heatmap(mcmc,title=None,xlim=None, figsize=(7,1
                 continue
         print(gene)
         ordered_expression = mcmc.expr_dict[gene]
-        norm = matplotlib.colors.Normalize(vmin=0, vmax=max(ordered_expression))#np.percentile(ordered_expression,99))
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=np.percentile(ordered_expression,99))
         for ii in range(0,len(ordered_expression)):
             plt.bar(ii,1,bottom=iter_-0.5,color=cmap(norm(ordered_expression[ii])),width=1)
         iter_ -= 1

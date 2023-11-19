@@ -1,7 +1,7 @@
 # Fit functions to pseudotime ordered gene expression profiles from scRNA-Seq data using affine-invariant ensemble MCMC.
 
 ## Required input files:
-   - count_matrix_fn: contains a .tsv file with a scRNA-Seq count matrix (cells in rows, genes in columns) where cells are ordered along a pseudotime trajectory (see data/pancreas_beta_development_e_14_5.raw_count_matrix.tsv.gz for an example)
+   - count_matrix_fn: contains a .tsv file with a scRNA-Seq count matrix (cells in rows, genes in columns) where cells are ordered along a pseudotime trajectory (see [data/pancreas_beta_development_e_14_5.raw_count_matrix.tsv.gz](data/pancreas_beta_development_e_14_5.raw_count_matrix.tsv.gz) for an example)
 
 As an example dataset, scRNA-Seq (10X) data from 4 embryonic mouse stages (E12.5-15.5) of pancreatic epithelial cells from [Bastidas-Ponce et al.](https://journals.biologists.com/dev/article/146/12/dev173849/19483/Comprehensive-single-cell-mRNA-profiling-reveals-a) was downloaded from [GEO](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE132188). The dataset was subset to E14.5 cells of the endocrine beta cell lineage, and [diffusion pseudotime](https://www.nature.com/articles/nmeth.3971) was used to estimate pseudotime for cells along the trajectory with [scanpy](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1382-0). See pancreatic_endocrine_differentiation_GSE132188.ipynb. In this notebook, the input file data/pancreas_beta_development_e_14_5.raw_count_matrix.tsv was generated.
 

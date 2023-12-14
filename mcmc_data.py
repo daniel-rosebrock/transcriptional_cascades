@@ -67,3 +67,36 @@ class mcmc_data():
         else: self.gene_relationships = build_gene_relationships(self.genes_good_fit, \
                 self.best_fits,self.inflection_points,self.inflection_point_derivs, \
                 self.inflection_points,self.inflection_point_derivs,tfs=None)
+    
+    def write_outputs(self,output_fn):
+        bic_diff = {}
+        bic_diff_unif = {}
+        for gene in self.best_fits.keys():
+            if self.best_fits[gene] != 'uniform':
+                #here, use bic estimate over avg params to sort genes by fit
+                bic_diff[gene] = self.bic_avg_params[gene][self.best_fits[gene]]-\
+                self.bic_avg_params[gene]['uniform']
+        sorted_genes = [x[0] for x in sorted(bic_diff.items(),key=lambda x:x[1])]
+        for gene in self.best_fits.keys():
+            if self.best_fits[gene] == 'uniform':
+                #here, use bic estimate over avg params to sort genes by fit
+                bic_diff_unif[gene] = np.min([self.bic_avg_params[gene][fit] for fit in ['gauss','double sigmoidal','sigmoidal']])-\
+                self.bic_avg_params[gene]['uniform']
+        sorted_genes_unif = [x[0] for x in sorted(bic_diff_unif.items(),key=lambda x:x[1])]
+        sorted_genes.extend(sorted_genes_unif)
+        output = open(output_fn,'w')
+        output.write('\t'.join(['gene','best_fit','inflection_point_1_mean','inflection_point_2_mean',
+                                'inflection_point_1_slope_mean','inflection_point_2_slope_mean',
+                                'BIC_avg_params_double_sigmoidal','BIC_avg_params_gauss',
+                                'BIC_avg_params_sigmoidal','BIC_avg_params_uniform'])+'\n')
+        for gene in sorted_genes:
+            output.write('\t'.join([gene,self.best_fits[gene],
+                                    str(np.mean(self.inflection_points[gene])) if self.inflection_points[gene] is not None else 'NA',
+                                    str(np.mean(self.inflection_points_2[gene])) if self.inflection_points_2[gene] is not None else 'NA',
+                                    str(np.mean(self.inflection_point_derivs[gene])) if self.inflection_point_derivs[gene] is not None else 'NA',
+                                    str(np.mean(self.inflection_point_derivs_2[gene])) if self.inflection_point_derivs_2[gene] is not None else 'NA',
+                                    str(self.bic_avg_params[gene]['double sigmoidal']),
+                                    str(self.bic_avg_params[gene]['gauss']),
+                                    str(self.bic_avg_params[gene]['sigmoidal']),
+                                    str(self.bic_avg_params[gene]['uniform'])])+'\n')
+        output.close()
